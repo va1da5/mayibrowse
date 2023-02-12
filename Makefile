@@ -12,7 +12,7 @@ build-all: build-gui
 	@rm -rf dist/*
 	GOOS=linux go build -o ./dist/$(filename)_linux .
 	GOOS=windows go build -o ./dist/$(filename)_windows.exe .
-	GOOS=darwin go build -o ./dist/$(filename)_darwin.exe .
+	GOOS=darwin go build -o ./dist/$(filename)_darwin
 	@cd dist; zip release.zip *
 
 .PHONY: build-gui
