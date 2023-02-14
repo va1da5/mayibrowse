@@ -1,4 +1,5 @@
 import React from "react";
+import { useDropzone } from "react-dropzone";
 import Container from "./container";
 
 const DropBox = ({ className, onChange }: any) => {
@@ -17,6 +18,16 @@ const DropBox = ({ className, onChange }: any) => {
     fileReader.readAsText(file);
   };
 
+  const onDrop = React.useCallback((acceptedFiles: any) => {
+    // Do something with the files
+    if (!acceptedFiles.length) return;
+    fileReader = new FileReader();
+    fileReader.onloadend = handleFileRead;
+    fileReader.readAsText(acceptedFiles[0]);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
   return (
     <div
       className={`flex w-full items-center justify-center ${
@@ -25,7 +36,12 @@ const DropBox = ({ className, onChange }: any) => {
     >
       <label
         htmlFor="dropzone-file"
-        className="hover:bg-bray-800 flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed  border-gray-600  bg-gray-800 hover:border-gray-500  hover:bg-gray-700"
+        className={`${
+          isDragActive
+            ? "border-gray-500  bg-gray-700"
+            : "border-gray-600  bg-gray-800"
+        } flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed  border-gray-600  bg-gray-800 hover:border-gray-500  hover:bg-gray-700`}
+        {...getRootProps()}
       >
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
           <svg
@@ -54,6 +70,7 @@ const DropBox = ({ className, onChange }: any) => {
           type="file"
           className="hidden"
           onChange={handleFileChosen}
+          {...getInputProps()}
         />
       </label>
     </div>
