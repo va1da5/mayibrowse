@@ -3,9 +3,7 @@ package utils
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -37,7 +35,13 @@ func GetUrl(url string, timeout int, userAgent string) GetUrlOutput {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatalln(err)
+		// log.Fatalln(err)
+		fmt.Println(err)
+		fmt.Println(err)
+		out.Blocked = true
+		out.Error = err.Error()
+		return out
+
 	}
 
 	req.Header.Set("User-Agent", userAgent)
@@ -46,32 +50,20 @@ func GetUrl(url string, timeout int, userAgent string) GetUrlOutput {
 	res, err := client.Do(req)
 	out.Time = time.Since(start).Milliseconds()
 	if err != nil {
-		// log.Fatalln(err)
 		fmt.Println(err)
 		out.Blocked = true
-		if strings.Contains(err.Error(), "no such host") {
-			out.Error = "DNS"
-		}
-
-		if strings.Contains(err.Error(), "context deadline exceeded") {
-			out.Error = "TIMEOUT"
-		}
-
-		if strings.Contains(err.Error(), "connection refused") {
-			out.Error = "REFUSED"
-		}
-
+		out.Error = err.Error()
 		return out
 	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println(err)
+		return out
 	}
 
 	out.Size = len(body)
-
 	out.Status = res.StatusCode
 	return out
 }

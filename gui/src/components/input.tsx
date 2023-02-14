@@ -10,14 +10,6 @@ const DropBox = ({ className, onChange }: any) => {
     onChange(content);
   };
 
-  const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) return;
-    const file = event.target.files[0];
-    fileReader = new FileReader();
-    fileReader.onloadend = handleFileRead;
-    fileReader.readAsText(file);
-  };
-
   const onDrop = React.useCallback((acceptedFiles: any) => {
     // Do something with the files
     if (!acceptedFiles.length) return;
@@ -69,7 +61,6 @@ const DropBox = ({ className, onChange }: any) => {
           id="dropzone-file"
           type="file"
           className="hidden"
-          onChange={handleFileChosen}
           {...getInputProps()}
         />
       </label>

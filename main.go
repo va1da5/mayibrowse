@@ -63,7 +63,7 @@ func main() {
 	})
 
 	// Checks individual URL if it is accessible
-	router.POST("/api/check", api.CheckUrl)
+	router.POST("/api/check", api.CheckUrls)
 
 	// Parses URLs from a provided content
 	router.POST("/api/parse", api.ParseUrls)

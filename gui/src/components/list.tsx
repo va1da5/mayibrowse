@@ -2,55 +2,49 @@ import React from "react";
 import Container from "./container";
 import { HiOutlineTrash } from "react-icons/hi2";
 
-const errors: { [key: string]: string } = {
-  TIMEOUT: "Request failed due to timeout",
-  DNS: "Domain name resolution failed",
-  REFUSED: "Connection refused",
-};
-
 type ItemProps = {
-  url: string;
+  data: EntryStatus;
+  loading: boolean;
   onDelete: (link: string) => void;
-  status: Status;
 };
 
-const Item = ({ url, onDelete, status }: ItemProps) => {
+const Item = ({ data, onDelete, loading }: ItemProps) => {
   onDelete = onDelete || (() => {});
 
   return (
-    <li
-      key={url}
-      className="m-4 flex justify-between rounded-md bg-gray-800 p-5"
-    >
+    <li className="m-4 flex justify-between rounded-md bg-gray-800 p-5">
       <span className="flex items-center gap-3 text-lg">
         <span
           className={`relative mr-5 inline-block h-5 w-5 ${
-            status?.loading ? "animate-pulse bg-gray-500" : ""
-          } ${status?.blocked === true ? "bg-red-700" : ""} ${
-            status?.blocked === false ? "bg-green-700" : ""
+            loading ? "animate-pulse bg-gray-500" : ""
+          } ${data?.blocked === true ? "bg-red-700" : ""} ${
+            data?.blocked === false ? "bg-green-700" : ""
           }
-          ${
-            status?.blocked === undefined && !status?.loading
-              ? "bg-gray-700"
-              : ""
-          }
-          rounded-3xl `}
+          ${data?.blocked === undefined && !loading ? "bg-gray-700" : ""}
+          rounded-3xl`}
         ></span>
-        <span>{url}</span>
-        {status?.time ? (
-          <div className="text-gray-400"> {status?.time}ms</div>
+        <a
+          href={data.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-indigo-400"
+        >
+          {data.link}
+        </a>
+        {data?.time ? (
+          <div className="text-gray-400"> {data?.time}ms</div>
         ) : null}
 
-        {status?.error?.length ? (
-          <div className="text-gray-400">{errors[status?.error]}</div>
+        {data?.error?.length ? (
+          <div className="text-gray-400">{data?.error}</div>
         ) : null}
       </span>
       <button
         onClick={() => {
-          onDelete(url);
+          onDelete(data.link);
         }}
       >
-        <HiOutlineTrash className="text-3xl text-gray-400 hover:text-indigo-500" />
+        <HiOutlineTrash className="text-3xl text-gray-400 hover:text-indigo-400" />
       </button>
     </li>
   );
@@ -72,8 +66,9 @@ type Props = {
   onDelete: (link: string) => void;
 };
 
-type Status = {
-  loading: boolean;
+type EntryStatus = {
+  domain: string;
+  link: string;
   blocked?: boolean;
   error?: string;
   time?: number;
@@ -82,30 +77,56 @@ type Status = {
 export default function List({ links, onDelete }: Props) {
   onDelete = onDelete || (() => {});
   const [timeout, setTimeout] = React.useState(15);
-  const [statusMap, setStatusMap] = React.useState<{ [key: string]: Status }>(
+  const [entries, SetEntries] = React.useState<{ [key: string]: EntryStatus }>(
     {}
   );
+  const [loading, setLoading] = React.useState(false);
 
   const handleAnalyze = () => {
-    links.forEach((link: string) => {
-      const requestOptions = {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: link, timeout }),
-      };
-      const tmp: { [key: string]: Status } = {};
-      tmp[link] = { loading: true };
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        urls: Object.values(entries).map((entry) => entry.link),
+        timeout,
+      }),
+    };
 
-      setStatusMap((current) => ({ ...current, ...tmp }));
-      fetch("/api/check", requestOptions)
-        .then((response) => response.json())
-        .then((status) => {
-          const tmp: { [key: string]: Status } = {};
-          tmp[link] = { loading: false, ...status };
-          setStatusMap((current) => ({ ...current, ...tmp }));
+    setLoading(true);
+    fetch("/api/check", requestOptions)
+      .then((response) => response.json())
+      .then((status) => {
+        Object.keys(status).forEach((domain) => {
+          SetEntries((current) => {
+            return {
+              ...current,
+              [domain]: { ...current[domain], ...status[domain] },
+            };
+          });
         });
-    });
+        setLoading(false);
+      });
   };
+
+  React.useEffect(() => {
+    SetEntries(
+      links.reduce((out, link) => {
+        const url: URL = new URL(link);
+        const domain = url.hostname;
+
+        return {
+          ...out,
+          [domain]: {
+            domain,
+            link,
+            blocked: undefined,
+            error: "",
+            time: 0,
+          },
+        };
+      }, {})
+    );
+  }, [links]);
 
   return (
     <>
@@ -114,7 +135,7 @@ export default function List({ links, onDelete }: Props) {
           <Button onClick={handleAnalyze} />
           <div className="ml-1 flex ">
             <div className="flex flex-col items-end">
-              <div className=" text-4xl">{links.length}</div>
+              <div className=" text-4xl">{Object.keys(entries).length}</div>
               <div className="mt-1 text-sm uppercase text-gray-400">Count</div>
             </div>
           </div>
@@ -139,12 +160,12 @@ export default function List({ links, onDelete }: Props) {
           </div>
         </div>
         <ul className="w-full flex-row ">
-          {links.map((url: string) => (
+          {Object.values(entries).map((entry: EntryStatus) => (
             <Item
-              key={url}
-              url={url}
+              key={entry.domain}
+              data={entry}
               onDelete={onDelete}
-              status={statusMap[url]}
+              loading={loading}
             />
           ))}
         </ul>
